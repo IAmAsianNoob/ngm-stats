@@ -4,6 +4,12 @@ import os
 
 DEBUG = "DEBUG" in os.environ and os.environ["DEBUG"].lower() == "true"
 
+MAIN_SHEET_RANDOM=0
+MAIN_SHEET_WATCHED=599282945
+SHEET_PLAYER_IDS=220350629
+SHEET_PLAYER_RANKS=120898190
+SHEET_EXTRA_STATS=1324663165
+
 is_list = False
 DIRECTORY = os.path.dirname(__file__)
 gc = gspread.oauth(
@@ -22,12 +28,17 @@ def s(e):
         return e[1]
     return e[2]
 
+def sort_incomplete(e):
+    if is_list:
+        return e[2]
+    return e[3]
+
 def post_to_sheet(tour):
     sheet = gc.open('ngm stats')
-    wks = sheet.get_worksheet(int(is_list))
-    extra_stats_sheet = sheet.get_worksheet(5)
-    ids_dict = convert_to_dict(sheet.get_worksheet(2).get_all_values())
-    ranks_dict = convert_to_dict(sheet.get_worksheet(3).get_all_values())
+    wks = sheet.get_worksheet_by_id(MAIN_SHEET_WATCHED if is_list else MAIN_SHEET_RANDOM)
+    extra_stats_sheet = sheet.get_worksheet_by_id(SHEET_EXTRA_STATS)
+    ids_dict = convert_to_dict(sheet.get_worksheet_by_id(SHEET_PLAYER_IDS).get_all_values())
+    ranks_dict = convert_to_dict(sheet.get_worksheet_by_id(SHEET_PLAYER_RANKS).get_all_values())
     full_stats = []
     incomplete_stats = []
 
@@ -72,11 +83,14 @@ def post_to_sheet(tour):
         full_stats.insert(0, ["rank, player name, guess_rate, avg_diff, erigs, dog, op_rate, ed_rate, in_rate"])
 
     if len(incomplete_stats) > 0:
-        incomplete_stats.sort(reverse=True, key=s)
+        incomplete_stats.sort(reverse=True, key=sort_incomplete)
+        # Pad with empty rows to clear the rest
+        while len(incomplete_stats) < 10:
+            incomplete_stats.append([""] * len(incomplete_stats[0]))
         if is_list:
-            extra_stats_sheet.update(values=incomplete_stats, range_name="A3")
+            extra_stats_sheet.update(values=incomplete_stats, range_name="A4")
         else:
-            extra_stats_sheet.update(values=incomplete_stats, range_name="A26")
+            extra_stats_sheet.update(values=incomplete_stats, range_name="A18")
 
     if len(tour.top_songs):
         print(f"\nTop {len(tour.top_songs)} played songs")

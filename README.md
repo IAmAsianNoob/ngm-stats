@@ -1,3 +1,5 @@
+Original creator: Tsui 💪
+
 # Requirements
 have python 3.6+ installed (https://www.python.org/downloads/)
 (make sure python.exe is added to PATH)

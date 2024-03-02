@@ -1,5 +1,8 @@
 import sys, Tour, gspread, os
 from datetime import date
+import os
+
+DEBUG = "DEBUG" in os.environ and os.environ["DEBUG"].lower() == "true"
 
 is_list = False
 DIRECTORY = os.path.dirname(__file__)
@@ -22,44 +25,70 @@ def s(e):
 def post_to_sheet(tour):
     sheet = gc.open('ngm stats')
     wks = sheet.get_worksheet(int(is_list))
+    extra_stats_sheet = sheet.get_worksheet(5)
     ids_dict = convert_to_dict(sheet.get_worksheet(2).get_all_values())
     ranks_dict = convert_to_dict(sheet.get_worksheet(3).get_all_values())
     full_stats = []
+    incomplete_stats = []
+
     for player in tour.players:
-        if player.rounds_played < 5:
-            continue
-        rank = "?"
-        if player.name in ids_dict:
-            if ids_dict[player.name] in ranks_dict:
-                rank = ranks_dict[ids_dict[player.name]]
         op_rate, ed_rate, in_rate = 0, 0, 0
         guess_rate = round((sum(player.correct_songs) / sum(player.total_songs)) * 100, 3)
         avg_diff = round(player.total_diff / sum(player.correct_songs), 3)
         erigs = player.dog[0]
         dog = round(sum([player.dog[i]*(i+1) for i in range(8)]) / sum(player.correct_songs), 3)
+        rank = "?"
+        if player.name in ids_dict:
+            if ids_dict[player.name] in ranks_dict:
+                rank = ranks_dict[ids_dict[player.name]]
         if player.total_songs[0]:
             op_rate = round((player.correct_songs[0] / player.total_songs[0]) * 100, 3)
         if player.total_songs[1]:
             ed_rate = round((player.correct_songs[1] / player.total_songs[1]) * 100, 3)
         if player.total_songs[2]:
             in_rate = round((player.correct_songs[2] / player.total_songs[2]) * 100, 3)
+
+        player_data = None
         if is_list:
-            full_stats.append([player.name, guess_rate, avg_diff, erigs, dog, op_rate, ed_rate, in_rate, player.rigs, player.rigs_hit, sum(player.correct_songs), sum(player.total_songs)])
+            player_data = [player.name, guess_rate, avg_diff, erigs, dog, op_rate, ed_rate, in_rate, player.rigs, player.rigs_hit, sum(player.correct_songs), sum(player.total_songs)]
         else:
-            full_stats.append([rank, player.name, guess_rate, avg_diff, erigs, dog, op_rate, ed_rate, in_rate])    
+            player_data = [rank, player.name, guess_rate, avg_diff, erigs, dog, op_rate, ed_rate, in_rate]
+
+        if player.rounds_played < 5:
+            player_data.insert(0, f"{player.rounds_played} games")
+            incomplete_stats.append(player_data)
+        else:
+            full_stats.append(player_data)
+
     full_stats.sort(reverse=True, key=s)
     full_stats.insert(0, [str(date.today())])
-    wks.update(values=full_stats, range_name='A'+str(len(wks.get_all_values())+2))
-            
-    
+
+    if not DEBUG:
+        wks.update(values=full_stats, range_name='A'+str(len(wks.get_all_values())+2))
+
+    if is_list:
+        full_stats.insert(0, ["player name, guess rate, avg diff, erigs, avg /8 correct, OP guess rate, ED guess rate, IN guess rate, rigs, rigs hit, correct count, song count"])
+    else:
+        full_stats.insert(0, ["rank, player name, guess_rate, avg_diff, erigs, dog, op_rate, ed_rate, in_rate"])
+
+    if len(incomplete_stats) > 0:
+        incomplete_stats.sort(reverse=True, key=s)
+        if is_list:
+            extra_stats_sheet.update(values=incomplete_stats, range_name="A3")
+        else:
+            extra_stats_sheet.update(values=incomplete_stats, range_name="A26")
+
+    if len(tour.top_songs):
+        print(f"\nTop {len(tour.top_songs)} played songs")
+        for [song, play_count] in tour.top_songs:
+            print(f"{song} - {play_count}")
 
 def main():
     global is_list
     args = sys.argv[1:]
     if "-l" in args:
         is_list = True
-    post_to_sheet(Tour.Tour(is_list))
-    
+    post_to_sheet(Tour.Tour(is_list, debug=DEBUG))
 
 if __name__ == "__main__":
     main()

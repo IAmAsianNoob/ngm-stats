@@ -1,8 +1,8 @@
 import os, json, re
-from datetime import date
+import sys
 
 DIRECTORY = os.path.dirname(__file__) + "/jsons/"
-REGEX = "\D*(\d{1,2})\.json$"
+REGEX = "\D*(\d{1,2})\s*(\(.*?\))?\.json$"
 
 class Player:
     def __init__(self, name):
@@ -37,6 +37,7 @@ class Game:
         self.is_list = is_list
         self.players = []
         self.total_songs = [0]*3
+        self.songs_info = dict()
         self.calculate_game(file_name)
         
     def get_all_names(self):
@@ -49,43 +50,61 @@ class Game:
         return None
         
     def calculate_game(self, file_name):
-        reg_match = re.search(REGEX, file_name)
-        if reg_match is None:
-            print("invalid file name: {}".format(file_name))
-            exit()
-        songs_played = int(reg_match.group(1))
+        # If default name, just use all songs
+        if file_name.startswith('amq_song_expoert'):
+            songs_played = None
+        else:
+            reg_match = re.search(REGEX, file_name)
+            if reg_match is None:
+                print("invalid file name: {}".format(file_name))
+                exit()
+            songs_played = int(reg_match.group(1))
         
         with open(DIRECTORY + file_name,encoding="utf8") as f:
             data = json.load(f)
-            
-        for song in data['songs'][:songs_played]:
-            song_type = song["songInfo"]["type"]
-            self.total_songs[song_type-1]+=1
-            correct_count = int(song['correctCount'])
-            
-            if self.is_list:
-                for player_name in song['listStates']:
-                    player = self.get_player_by_name(player_name["name"])
-                    if player is None:
-                        player = Player(player_name["name"])
-                        self.players.append(player)
-                    player.rigs+=1
-                    if player.name in song['correctGuessPlayers']:
-                        player.rigs_hit+=1
-                    
-            if not correct_count:
-                continue
+
+        try:
+            for song in data['songs'][:songs_played]:
+                # Probably downloaded after the user disconnected or refreshed the page
+                if 'videoUrl' not in song:
+                    print(f"The following file is incomplete: {file_name}. Maybe a disconnect occurred?")
+                    sys.exit(1)
+
+                song_file = song['videoUrl'].split('/')[-1]
+                if song_file not in self.songs_info:
+                    self.songs_info[song_file] = song['songInfo']
+                    self.songs_info[song_file]['count'] = 0
+                self.songs_info[song_file]['count'] += 1
+
+                song_type = song["songInfo"]["type"]
+                self.total_songs[song_type-1]+=1
+                correct_count = int(song['correctCount'])
                 
-            for player_name in song['correctGuessPlayers']:
-                player = self.get_player_by_name(player_name)
-                if player is None:
-                    player = Player(player_name)
-                    self.players.append(player)
-                player.correct_songs[song_type-1]+=1
-                player.dog[correct_count-1]+=1
-                if song['songInfo']['animeDifficulty'] != "Unrated":
-                    player.total_diff += song['songInfo']['animeDifficulty']
+                if self.is_list:
+                    for player_name in song['listStates']:
+                        player = self.get_player_by_name(player_name["name"])
+                        if player is None:
+                            player = Player(player_name["name"])
+                            self.players.append(player)
+                        player.rigs+=1
+                        if player.name in song['correctGuessPlayers']:
+                            player.rigs_hit+=1
+                
+                if not correct_count:
+                    continue
                     
+                for player_name in song['correctGuessPlayers']:
+                    player = self.get_player_by_name(player_name)
+                    if player is None:
+                        player = Player(player_name)
+                        self.players.append(player)
+                    player.correct_songs[song_type-1]+=1
+                    player.dog[correct_count-1]+=1
+                    if song['songInfo']['animeDifficulty'] != "Unrated":
+                        player.total_diff += song['songInfo']['animeDifficulty']
+        except Exception as e:
+            print("Uncaught error:", file_name, e)
+
         while len(self.players) < 8:
             print(self.get_all_names())
             player_name = input("[{}] Input missing player name(case sensitive):".format(file_name))
@@ -96,28 +115,39 @@ class Game:
             
         for player in self.players:
             player.update_total(self.total_songs)
-            
-            
+
 class Tour:
-    def __init__(self, is_list = False):
+    def __init__(self, is_list = False, debug=False):
         self.is_list = is_list
         self.players = []
+        self.__song_infos = dict()
         self.calculate_all_games()
-        
+        self.debug = debug
+
+        self.top_songs = [[song_file, song_info['count']] for song_file, song_info in self.__song_infos.items()]
+        self.top_songs = [[f"{self.__song_infos[song_file]['songName']} ({self.__song_infos[song_file]['animeNames']['romaji']})", play_count] for [song_file, play_count] in sorted(self.top_songs, key=lambda pair: pair[1], reverse=True)[:10] if play_count > 1]
+
+        if self.debug:
+            player_info = [f"{player.name}-{player.rounds_played}" for player in self.players]
+            print(f"Players: {player_info} ({len(self.players)})\n")
+
     def get_player_by_name(self, name):
         for player in self.players:
             if player.name == name:
                 return player
         return None
-        
+
     def calculate_all_games(self):
         for file_name in os.listdir(DIRECTORY):
-            game = Game(file_name, self.is_list)
-            for player in game.players:
-                if self.get_player_by_name(player.name) is None:
-                    self.players.append(player)
-                else:
-                    self.get_player_by_name(player.name).update_all(player)
-                    
-
-                    
+            if file_name.endswith(".json"):
+                game = Game(file_name, self.is_list)
+                for song_file, song_info in game.songs_info.items():
+                    if song_file not in self.__song_infos:
+                        self.__song_infos[song_file] = song_info
+                    else:
+                        self.__song_infos[song_file]['count'] += song_info['count']
+                for player in game.players:
+                    if self.get_player_by_name(player.name) is None:
+                        self.players.append(player)
+                    else:
+                        self.get_player_by_name(player.name).update_all(player)

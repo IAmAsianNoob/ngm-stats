@@ -1,3 +1,3 @@
 @echo off
-python %~dp0\ngm-stats.py
+python3 %~dp0\ngm-stats.py
 PAUSE

@@ -80,12 +80,12 @@ class Game:
                 self.total_songs[song_type-1]+=1
                 correct_count = int(song['correctCount'])
                 
-                if self.is_list:
-                    for player_name in song['listStates']:
-                        player = self.get_player_by_name(player_name["name"])
-                        if player is None:
-                            player = Player(player_name["name"])
-                            self.players.append(player)
+                for player_name in song['listStates']:
+                    player = self.get_player_by_name(player_name["name"])
+                    if player is None:
+                        player = Player(player_name["name"])
+                        self.players.append(player)
+                    if self.is_list:
                         player.rigs+=1
                         if player.name in song['correctGuessPlayers']:
                             player.rigs_hit+=1

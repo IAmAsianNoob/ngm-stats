@@ -10,6 +10,9 @@ SHEET_PLAYER_IDS=220350629
 SHEET_PLAYER_RANKS=120898190
 SHEET_EXTRA_STATS=1324663165
 
+# 🐶
+dog_weight = [1, 0.8, 0.5, 0.1, 0, 0, 0, 0]
+
 is_list = False
 DIRECTORY = os.path.dirname(__file__)
 gc = gspread.oauth(
@@ -49,6 +52,7 @@ def post_to_sheet(tour):
         avg_diff = round(player.total_diff / sum(player.correct_songs), 3)
         erigs = player.dog[0]
         dog = round(sum([player.dog[i]*(i+1) for i in range(8)]) / sum(player.correct_songs), 3)
+        whats_up_dog = round(sum([player.dog[i]* dog_weight[i] for i in range(8)]) / sum(player.total_songs) * 100, 3)
         rank = "?"
         if player.name in ids_dict:
             if ids_dict[player.name] in ranks_dict:
@@ -62,9 +66,9 @@ def post_to_sheet(tour):
 
         player_data = None
         if is_list:
-            player_data = [player.name, guess_rate, avg_diff, erigs, dog, op_rate, ed_rate, in_rate, player.rigs, player.rigs_hit, sum(player.correct_songs), sum(player.total_songs)]
+            player_data = [player.name, guess_rate, whats_up_dog, avg_diff, erigs, dog, op_rate, ed_rate, in_rate, player.rigs, player.rigs_hit, sum(player.correct_songs), sum(player.total_songs)]
         else:
-            player_data = [rank, player.name, guess_rate, avg_diff, erigs, dog, op_rate, ed_rate, in_rate]
+            player_data = [rank, player.name, guess_rate, whats_up_dog, avg_diff, erigs, dog, op_rate, ed_rate, in_rate]
 
         if player.rounds_played < 5:
             player_data.insert(0, f"{player.rounds_played} games")
@@ -82,9 +86,9 @@ def post_to_sheet(tour):
             print(" ".join([str(e) for e in row]))
 
     if is_list:
-        full_stats.insert(0, ["player name, guess rate, avg diff, erigs, avg /8 correct, OP guess rate, ED guess rate, IN guess rate, rigs, rigs hit, correct count, song count"])
+        full_stats.insert(0, ["player name, guess rate, usefullness, avg diff, erigs, avg /8 correct, OP guess rate, ED guess rate, IN guess rate, rigs, rigs hit, correct count, song count"])
     else:
-        full_stats.insert(0, ["rank, player name, guess_rate, avg_diff, erigs, dog, op_rate, ed_rate, in_rate"])
+        full_stats.insert(0, ["rank, player name, guess_rate, usefulness, avg_diff, erigs, dog, op_rate, ed_rate, in_rate"])
 
     if len(incomplete_stats) > 0:
         print("Check the 'Extra Stats' sheet")

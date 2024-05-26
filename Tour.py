@@ -61,7 +61,11 @@ class Game:
             songs_played = int(reg_match.group(1))
         
         with open(DIRECTORY + file_name,encoding="utf8") as f:
-            data = json.load(f)
+            try:
+                data = json.load(f)
+            except:
+                print(f"Failed to load {f} are you sure that this is the right file?")
+                sys.exit(1)
 
         try:
             for song in data['songs'][:songs_played]:

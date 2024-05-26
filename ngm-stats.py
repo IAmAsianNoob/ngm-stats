@@ -36,6 +36,7 @@ def sort_incomplete(e):
 def post_to_sheet(tour):
     sheet = gc.open('ngm stats')
     wks = sheet.get_worksheet_by_id(MAIN_SHEET_WATCHED if is_list else MAIN_SHEET_RANDOM)
+    sheet_size = len(wks.get_all_values())
     extra_stats_sheet = sheet.get_worksheet_by_id(SHEET_EXTRA_STATS)
     ids_dict = convert_to_dict(sheet.get_worksheet_by_id(SHEET_PLAYER_IDS).get_all_values())
     ranks_dict = convert_to_dict(sheet.get_worksheet_by_id(SHEET_PLAYER_RANKS).get_all_values())
@@ -75,7 +76,10 @@ def post_to_sheet(tour):
     full_stats.insert(0, [str(date.today())])
 
     if not DEBUG:
-        wks.update(values=full_stats, range_name='A'+str(len(wks.get_all_values())+2))
+        wks.update(values=full_stats, range_name='A'+str(sheet_size + 2))
+    else:
+        for row in full_stats:
+            print(" ".join([str(e) for e in row]))
 
     if is_list:
         full_stats.insert(0, ["player name, guess rate, avg diff, erigs, avg /8 correct, OP guess rate, ED guess rate, IN guess rate, rigs, rigs hit, correct count, song count"])
@@ -83,6 +87,7 @@ def post_to_sheet(tour):
         full_stats.insert(0, ["rank, player name, guess_rate, avg_diff, erigs, dog, op_rate, ed_rate, in_rate"])
 
     if len(incomplete_stats) > 0:
+        print("Check the 'Extra Stats' sheet")
         incomplete_stats.sort(reverse=True, key=sort_incomplete)
         # Pad with empty rows to clear the rest
         while len(incomplete_stats) < 10:
@@ -96,6 +101,8 @@ def post_to_sheet(tour):
         print(f"\nTop {len(tour.top_songs)} played songs")
         for [song, play_count] in tour.top_songs:
             print(f"{song} - {play_count}")
+    
+    print(f"{wks.url}?range={sheet_size}:{sheet_size}")
 
 def main():
     global is_list

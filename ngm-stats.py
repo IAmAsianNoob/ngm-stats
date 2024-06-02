@@ -36,6 +36,8 @@ def sort_incomplete(e):
         return e[2]
     return e[3]
 
+avg_team = float(input("Enter the average team rank: "))
+
 def post_to_sheet(tour):
     sheet = gc.open('ngm stats')
     wks = sheet.get_worksheet_by_id(MAIN_SHEET_WATCHED if is_list else MAIN_SHEET_RANDOM)
@@ -52,7 +54,7 @@ def post_to_sheet(tour):
         avg_diff = round(player.total_diff / sum(player.correct_songs), 3)
         erigs = player.dog[0]
         dog = round(sum([player.dog[i]*(i+1) for i in range(8)]) / sum(player.correct_songs), 3)
-        whats_up_dog = round(sum([player.dog[i]* dog_weight[i] for i in range(8)]) / sum(player.total_songs) * 100, 3)
+        whats_up_dog = round(sum([player.dog[i]* dog_weight[i] for i in range(8)]) / sum(player.total_songs) * avg_team, 3)
         rank = "?"
         if player.name in ids_dict:
             if ids_dict[player.name] in ranks_dict:

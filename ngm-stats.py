@@ -54,7 +54,7 @@ def post_to_sheet(tour):
         avg_diff = round(player.total_diff / sum(player.correct_songs), 3)
         erigs = player.dog[0]
         dog = round(sum([player.dog[i]*(i+1) for i in range(8)]) / sum(player.correct_songs), 3)
-        whats_up_dog = round(sum([player.dog[i]* dog_weight[i] for i in range(8)]) / sum(player.total_songs) * avg_team, 3)
+        whats_up_dog = round((avg_team * 2 * sum([player.dog[i]* dog_weight[i] for i in range(8)])) / sum(player.total_songs), 3)
         rank = "?"
         if player.name in ids_dict:
             if ids_dict[player.name] in ranks_dict:

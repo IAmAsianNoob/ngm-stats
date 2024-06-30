@@ -11,7 +11,16 @@ SHEET_PLAYER_RANKS=120898190
 SHEET_EXTRA_STATS=1324663165
 
 # 🐶
-dog_weight = [1, 0.8, 0.5, 0.1, 0, 0, 0, 0]
+dog_weight = [
+    1,      # 1/8
+    9/14,   # 2/8
+    17/42,  # 3/8
+    1/4,    # 4/8
+    3/20,   # 5/8
+    1/12,   # 6/8
+    1/28,   # 7/8
+    0       # 8/8
+]
 
 is_list = False
 DIRECTORY = os.path.dirname(__file__)

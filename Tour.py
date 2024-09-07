@@ -56,9 +56,9 @@ class Game:
         else:
             reg_match = re.search(REGEX, file_name)
             if reg_match is None:
-                print("invalid file name: {}".format(file_name))
-                exit()
-            songs_played = int(reg_match.group(1))
+                songs_played = None
+            else:
+                songs_played = int(reg_match.group(1))
         
         with open(DIRECTORY + file_name,encoding="utf8") as f:
             try:

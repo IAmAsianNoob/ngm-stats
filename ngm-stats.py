@@ -117,7 +117,7 @@ def post_to_sheet(tour):
         for [song, play_count] in tour.top_songs:
             print(f"{song} - {play_count}")
     
-    print(f"{wks.url}?range={sheet_size}:{sheet_size}")
+    print(f"{wks.url}?range={sheet_size + 3}:{sheet_size + 3}")
 
 def main():
     global is_list
